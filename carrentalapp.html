@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AkkiCars – Smart Car Rentals</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background: #f4f6f9;
+      color: #333;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0077cc, #004b99);
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    header p {
+      margin: 5px 0 0;
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .section-title {
+      text-align: center;
+      margin: 30px 0 10px;
+      font-size: 1.6rem;
+      color: #0077cc;
+    }
+
+    .car-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 25px;
+      padding: 20px;
+    }
+
+    .car {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 320px;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .car:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    .car img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .car-details {
+      padding: 15px;
+    }
+
+    .car-details h3 {
+      margin: 0 0 8px;
+    }
+
+    .car-details p {
+      margin: 5px 0;
+      font-size: 0.95rem;
+    }
+
+    .car button {
+      margin-top: 10px;
+      background: #0077cc;
+      color: white;
+      border: none;
+      padding: 10px;
+      width: 100%;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 6px;
+    }
+
+    .car button:hover {
+      background: #005fa3;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      width: 90%;
+      max-width: 420px;
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      text-align: center;
+      color: #0077cc;
+    }
+
+    .modal-content input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .modal-content button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .confirm {
+      background: #0077cc;
+      color: white;
+    }
+
+    .confirm:hover {
+      background: #005fa3;
+    }
+
+    .close {
+      margin-top: 8px;
+      background: #ccc;
+    }
+
+    footer {
+      text-align: center;
+      padding: 15px;
+      background: #004b99;
+      color: white;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>🚗 AkkiCars</h1>
+  <p>Smart, Reliable & Affordable Car Rentals in India</p>
+</header>
+
+<h1 class="section-title">Available Cars</h1>
+
+<div class="car-list" id="carList"></div>
+
+<!-- Booking Modal -->
+<div class="modal" id="bookingModal">
+  <div class="modal-content">
+    <h2>Book Your Car</h2>
+    <form id="rentalForm">
+      <input type="text" id="name" placeholder="Full Name" required />
+      <input type="email" id="email" placeholder="Email Address" required />
+      <input type="date" id="pickupDate" required />
+      <input type="date" id="returnDate" required />
+      <button type="submit" class="confirm">Confirm Booking</button>
+      <button type="button" class="close" onclick="closeModal()">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<footer>
+  © 2025 AkkiCars | Designed & Developed by Akash
+</footer>
+
+<script>
+  const USD_TO_INR = 85;
+
+  const cars = [
+    {
+      id: 1,
+      name: "Toyota Corolla",
+      price: 45,
+      image: "https://images.pexels.com/photos/170811/pexels-photo-170811.jpeg"
+    },
+    {
+      id: 2,
+      name: "Honda City",
+      price: 50,
+      image: "https://images.pexels.com/photos/210019/pexels-photo-210019.jpeg"
+    },
+    {
+      id: 3,
+      name: "Hyundai Creta",
+      price: 55,
+      image: "https://images.pexels.com/photos/358070/pexels-photo-358070.jpeg"
+    },
+    {
+      id: 4,
+      name: "BMW 3 Series",
+      price: 120,
+      image: "https://images.pexels.com/photos/244206/pexels-photo-244206.jpeg"
+    },
+    {
+      id: 5,
+      name: "Audi A4",
+      price: 130,
+      image: "https://images.pexels.com/photos/305070/pexels-photo-305070.jpeg"
+    },
+    {
+      id: 6,
+      name: "Mercedes-Benz C-Class",
+      price: 140,
+      image: "https://images.pexels.com/photos/248747/pexels-photo-248747.jpeg"
+    }
+  ];
+
+  const carList = document.getElementById("carList");
+  const bookingModal = document.getElementById("bookingModal");
+  const rentalForm = document.getElementById("rentalForm");
+  let selectedCar = null;
+
+  function renderCars() {
+    carList.innerHTML = cars.map(car => {
+      const priceINR = car.price * USD_TO_INR;
+      return `
+        <div class="car">
+          <img src="${car.image}" alt="${car.name}">
+          <div class="car-details">
+            <h3>${car.name}</h3>
+            <p>💰 ₹${priceINR.toLocaleString("en-IN")} / day</p>
+            <button onclick="openModal(${car.id})">Rent Now</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function openModal(id) {
+    selectedCar = cars.find(car => car.id === id);
+    bookingModal.style.display = "flex";
+  }
+
+  function closeModal() {
+    bookingModal.style.display = "none";
+    rentalForm.reset();
+  }
+
+  rentalForm.addEventListener("submit", e => {
+    e.preventDefault();
+
+    const name = document.getElementById("name").value;
+    const pickup = new Date(document.getElementById("pickupDate").value);
+    const returnD = new Date(document.getElementById("returnDate").value);
+
+    const days = Math.max(1, Math.ceil((returnD - pickup) / (1000 * 60 * 60 * 24)));
+    const totalCost = days * selectedCar.price * USD_TO_INR;
+
+    alert(
+      `✅ Booking Confirmed!\n\n` +
+      `Car: ${selectedCar.name}\n` +
+      `Customer: ${name}\n` +
+      `Days: ${days}\n` +
+      `Total Cost: ₹${totalCost.toLocaleString("en-IN")}`
+    );
+
+    closeModal();
+  });
+
+  renderCars();
+</script>
+
+</body>
+</html>
