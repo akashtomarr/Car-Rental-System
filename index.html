@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DRIVEEASE – Smart Car Rentals</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #f4f6f9;
+  }
+
+  header {
+    background: linear-gradient(135deg, #0077cc, #004b99);
+    color: white;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .section-title {
+    text-align: center;
+    margin: 20px;
+    color: #0077cc;
+  }
+
+  .car-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .car {
+    background: white;
+    width: 300px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .car img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+  }
+
+  .car-details {
+    padding: 15px;
+  }
+
+  .car button {
+    width: 100%;
+    padding: 10px;
+    background: #0077cc;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+
+  .car button:hover {
+    background: #005fa3;
+  }
+
+  /* MODAL */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-content {
+    background: white;
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 10px;
+  }
+
+  .modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+  }
+
+  .confirm {
+    width: 100%;
+    padding: 10px;
+    background: green;
+    color: white;
+    border: none;
+  }
+
+  .close {
+    width: 100%;
+    margin-top: 5px;
+    padding: 10px;
+    background: gray;
+    color: white;
+    border: none;
+  }
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🚗 DRIVEEASE</h1>
+  <p>Smart Car Rental System</p>
+</header>
+
+<h2 class="section-title">Available Cars</h2>
+
+<div id="carList" class="car-list"></div>
+
+<!-- MODAL -->
+<div class="modal" id="bookingModal">
+  <div class="modal-content">
+    <h3>Book Car</h3>
+
+    <form id="bookingForm">
+      <input type="text" id="name" placeholder="Name" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="date" id="pickupDate" required />
+      <input type="date" id="returnDate" required />
+
+      <button class="confirm" type="submit">Confirm Booking</button>
+      <button class="close" type="button" onclick="closeModal()">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<script>
+let cars = [];
+let selectedCar = null;
+
+const carList = document.getElementById("carList");
+const modal = document.getElementById("bookingModal");
+const form = document.getElementById("bookingForm");
+
+// ================= LOAD CARS =================
+async function loadCars() {
+  try {
+    const response = await fetch("/api/cars");
+    const data = await response.json();
+
+    console.log(data);
+
+    cars = data;
+
+    renderCars();
+
+  } catch (error) {
+    console.log("Error loading cars:", error);
+    carList.innerHTML = "<h2>Failed to load cars</h2>";
+  }
+}
+
+// ================= RENDER CARS =================
+function renderCars() {
+
+  carList.innerHTML = "";
+
+  cars.forEach(car => {
+
+    carList.innerHTML += `
+      <div class="car">
+        <img src="https://images.pexels.com/photos/170811/pexels-photo-170811.jpeg">
+
+        <div class="car-details">
+          <h3>${car.name}</h3>
+
+          <p>🚗 ${car.type}</p>
+
+          <p>💰 ₹${car.pricePerDay}/day</p>
+
+          <button onclick="openModal(${car.id})">
+            Rent Now
+          </button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// ================= OPEN MODAL =================
+function openModal(id) {
+  selectedCar = cars.find(car => car.id === id);
+  modal.style.display = "flex";
+}
+
+// ================= CLOSE MODAL =================
+function closeModal() {
+  modal.style.display = "none";
+  form.reset();
+}
+
+// ================= BOOKING =================
+form.addEventListener("submit", async (e) => {
+
+  e.preventDefault();
+
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  const pickup = document.getElementById("pickupDate").value;
+  const ret = document.getElementById("returnDate").value;
+
+  const days = Math.max(
+    1,
+    Math.ceil((new Date(ret) - new Date(pickup)) / (1000 * 60 * 60 * 24))
+  );
+
+  const totalPrice = days * selectedCar.pricePerDay;
+
+  try {
+
+    const response = await fetch("/api/bookings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        carId: selectedCar.id,
+        userName: name,
+        email,
+        pickupDate: pickup,
+        returnDate: ret,
+        days,
+        totalPrice
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert("Booking Saved Successfully ✅");
+      closeModal();
+    } else {
+      alert("Booking Failed ❌");
+    }
+
+  } catch (error) {
+    console.log(error);
+    alert("Server Error ❌");
+  }
+});
+
+// ================= START =================
+loadCars();
+</script>
+
+</body>
+</html>
